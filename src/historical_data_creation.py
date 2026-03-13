@@ -11,8 +11,8 @@ from tqdm import tqdm
 DATA_DIR = Path("data")
 
 
-API_KEY = "PKRYPYLJE36PG2ROIQODHW6PMK"
-SECRET_KEY = "HoQ6JapAaYT8arayXiocGjyv13U2JU7uv1ruRkVo4ncM"
+API_KEY = 
+SECRET_KEY = 
 
 
 client = StockHistoricalDataClient(API_KEY, SECRET_KEY)
