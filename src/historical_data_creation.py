@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+
+
 DATA_DIR = Path("data")
 
 
@@ -49,7 +51,7 @@ def fetch_minute_data(symbol):
 def fetch_daily_data(symbol):
 
     end = datetime.utcnow()
-    start = end - timedelta(days=365)
+    start = end - timedelta(days=365*4)
 
     request = StockBarsRequest(
         symbol_or_symbols=symbol,
@@ -61,6 +63,7 @@ def fetch_daily_data(symbol):
     bars = client.get_stock_bars(request)
     df = bars.df.reset_index()
     df['daily_return'] = df['close'].pct_change()
+    df['20_Rolling_Std'] = df['daily_return'].rolling(window=20).std()
     path = DATA_DIR / "day" / f"{symbol}.parquet"
     df.to_parquet(path, engine="pyarrow")
     return df

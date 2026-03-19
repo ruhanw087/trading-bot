@@ -2,18 +2,22 @@ import pandas as pd
 from hmmlearn.hmm import GaussianHMM
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
+import warnings
+
+warnings.simplefilter("ignore")
 
 
-n_states = 2
+n_states = 4
 
 def load_ticker_returns(ticker):
     df = pd.read_parquet(f"data/day/{ticker}.parquet")
-    returns = df["daily_return"].dropna()
-    df_X = returns.values.reshape(-1, 1)
+    df = df[["daily_return", "20_Rolling_Std",'symbol','timestamp','open','high','low','close',"volume"]].dropna()
+    features = df[["daily_return", "20_Rolling_Std"]].values
+    #features = df[["daily_return"]].values
     scaler = StandardScaler()
 
     scaled_X = scaler.fit_transform(
-        df_X
+        features
     )
     return scaled_X, df
 
@@ -21,7 +25,7 @@ def fit_returns(returns):
     model = GaussianHMM(
         n_components=n_states,
         covariance_type="full",
-        n_iter=200,
+        n_iter=100,
         tol=1e-3,
         random_state=0
     )
@@ -30,7 +34,6 @@ def fit_returns(returns):
 
 def predict_regimes(model, df, returns):
     hidden_states = model.predict(returns)
-    df = df.iloc[1:].copy()
     df["state"] = hidden_states
     return df
 
@@ -38,7 +41,8 @@ def expected_return_tomorrow(model, returns):
     logprob, state_probs = model.score_samples(returns)
     current_state_dist = state_probs[-1]
     next_state_probs = current_state_dist @ model.transmat_
-    state_means = model.means_.flatten()
+    #state_means = model.means_.flatten() ####Only for single variate
+    state_means = model.means_[:, 0] ####For multivariate
     expected_return = next_state_probs @ state_means
     return expected_return, next_state_probs
 
@@ -46,27 +50,52 @@ if __name__ == "__main__":
     scaled_X, df = load_ticker_returns('A')
     model = fit_returns(scaled_X)
     df = predict_regimes(model,df,scaled_X)
-    # # plt.figure(figsize=(12,6))
+    print(expected_return_tomorrow(model,scaled_X))
+    plt.figure(figsize=(12,6))
 
 
 
-    # # for state in range(n_states):
-    # #     mask = df["state"] == state
-    # #     plt.scatter(df["timestamp"][mask], df["close"][mask], s=5, label=f"State {state}")
+    for i in range(len(df) - 1):
+        state = df["state"].iloc[i]
 
-    # # plt.plot(df["timestamp"], df["close"], color="black", alpha=0.4)
+        plt.plot(
+            df["timestamp"].iloc[i:i+2],
+            df["close"].iloc[i:i+2],
+            color=f"C{state}",
+            linewidth=1.5
+        )
+
+    plt.title("HMM Market Regimes")
+    plt.xlabel("Time")
+    plt.ylabel("Price")
+
+    # legend
+    for state in range(n_states):
+        plt.plot([], [], color=f"C{state}", label=f"State {state}")
+
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    # for state in range(n_states):
+    #     mask = df["state"] == state
+    #     plt.scatter(df["timestamp"][mask], df["close"][mask], s=5, label=f"State {state}")
+
+    # plt.plot(df["timestamp"], df["close"], color="black", alpha=0.4)
 
 
-    # # plt.legend()
-    # # plt.title("HMM Market Regimes")
-    # # plt.show()
+    # plt.legend()
+    # plt.title("HMM Market Regimes")
+    # plt.show()
 
-
+    # print(model.transmat_)
+    # print(model.means_)
     # plt.figure(figsize=(10,6))
 
     # for state in range(n_states):
         
     #     state_returns = df[df["state"] == state]["daily_return"]
+    #     print("Length State", state, len(state_returns))
         
     #     plt.hist(
     #         state_returns,
