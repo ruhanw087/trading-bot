@@ -1,5 +1,6 @@
 from hmm_model import load_ticker_returns, fit_returns, predict_regimes, expected_return_tomorrow
 from historical_data_creation import get_russell_1000
+import quantstats as qs
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -12,6 +13,14 @@ warnings.simplefilter("ignore", category=UserWarning)
 
 WINDOW = 400
 STARTING_CAPITAL = 500
+SIM_WINDOW = 365
+
+def sharpe(results):
+    results = results.dropna()
+    returns = pd.Series(results['pct_change'].dropna().values, index=pd.to_datetime(results['timestamp']))
+    sharpe_ratio = qs.stats.sharpe(returns)
+    print(f"Annualized Sharpe Ratio: {sharpe_ratio:.2f}")
+    qs.reports.html(returns, output='portfolio_report.html')
 
 
 def simulate_trading(tickers):
@@ -31,8 +40,8 @@ def simulate_trading(tickers):
     capital_history = []
     ticker_history = []
 
-    for i in range(WINDOW, len(dates) - 1):
-        print(i)
+    for i in range(len(dates)-SIM_WINDOW, len(dates)):
+        print("DAY:", i+SIM_WINDOW-len(dates))
         expected_returns = {}
 
         for ticker in tickers:
@@ -55,7 +64,7 @@ def simulate_trading(tickers):
 
                 expected_returns[ticker] = exp_ret
 
-            except:
+            except Exception:
                 continue
 
         if len(expected_returns) == 0 or max(expected_returns.values())<0.002:
@@ -70,7 +79,7 @@ def simulate_trading(tickers):
         open_price = trade_df.iloc[i]["open"]
         close_price = trade_df.iloc[i]["close"]
 
-        shares = capital / open_price
+        shares = capital // open_price
 
         capital += shares * (close_price-open_price)
 
@@ -78,19 +87,24 @@ def simulate_trading(tickers):
         ticker_history.append(best_ticker)
 
         print(capital)
-        print(best_ticker, open_price, close_price)
+        print(best_ticker, open_price, close_price, shares)
+    
 
     results = pd.DataFrame({
-        "timestamp": dates[WINDOW+1:WINDOW+1+len(capital_history)],
+        "timestamp": dates[len(dates)-SIM_WINDOW:len(dates)],
         "capital": capital_history,
         "ticker": ticker_history
     })
-
-    return results
+    results['pct_change'] = results['capital'].pct_change().dropna()
+    # results.dropna().to_excel("test.xlsx", index=False)
+    return results.dropna()
 
 tickers = get_russell_1000()
 
 results = simulate_trading(tickers)
+
+
+sharpe(results)
 
 plt.plot(results['capital'])
 

@@ -5,6 +5,7 @@ charset-normalizer==3.4.5
 idna==3.11
 msgpack==1.1.2
 numpy==2.4.3
+openpyxl==3.1.5
 pandas==3.0.1
 pathlib==1.0.1
 pyarrow==23.0.1
@@ -21,3 +22,4 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 urllib3==2.6.3
 websockets==16.0
+quantstats==0.0.81

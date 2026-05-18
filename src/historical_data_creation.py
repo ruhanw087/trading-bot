@@ -84,5 +84,5 @@ if __name__ == "__main__":
     #     except Exception as e:
     #         print(f"Failed {ticker}", e)
 
-    df = pd.read_parquet('data/day/A.parquet', engine = 'pyarrow')
+    df = pd.read_parquet('data/day/AVT.parquet', engine = 'pyarrow')
     df.to_csv('output.csv')
